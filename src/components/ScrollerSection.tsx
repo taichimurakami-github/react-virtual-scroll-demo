@@ -1,0 +1,84 @@
+"use client";
+import { useCallback, useMemo, useState } from "react";
+import StaticVirtualScrollWrapper from "./StaticVirtualScrollWrapper";
+import DynamicVirtualScrollWrapper from "./DynamicVirtualScrollWrapper";
+import { dummyDataList, getDummyData } from "../dummyData";
+import { CardData } from "./CardContent";
+
+type Mode = "static" | "dynamic";
+type ScrollerSectionProps = {
+  itemLength?: number;
+};
+
+export type VirtualScrollWrapperProps = {
+  items: CardData[];
+  className?: string;
+  itemHeight: number;
+  itemWidth: number;
+  itemGap: number;
+};
+
+const itemWidth = 700;
+const itemHeight = 200;
+const itemGap = 16;
+const LS_KEY_MODE = "LS_KEY_MODE";
+
+export const ScrollerSection = ({ itemLength = 50 }: ScrollerSectionProps) => {
+  const [mode, setMode] = useState<Mode>(
+    (localStorage.getItem(LS_KEY_MODE) as Mode) ?? "static"
+  );
+  const dummyItems = useMemo(() => {
+    return Array(itemLength)
+      .fill(null)
+      .map((_, i) => {
+        return {
+          ...getDummyData(i % dummyDataList.length, i),
+          id: i,
+          key: `dummy_card_content_${i}`,
+        };
+      });
+  }, [itemLength]);
+
+  return (
+    <>
+      <button
+        className="fixed top-2 left-2 p-2 flex justfy-center items-center bg-black rounded-md text-white font-bold"
+        onClick={useCallback(() => {
+          setMode((mode) => {
+            const nextMode = mode === "static" ? "dynamic" : "static";
+            localStorage.setItem(LS_KEY_MODE, nextMode);
+            return nextMode;
+          });
+        }, [])}
+      >
+        Active mode: {mode} <br />
+        (Click to change)
+      </button>
+
+      <div
+        id="virtual_scroll_wrapper"
+        className="relative shadow-lg"
+        style={{
+          width: `${itemWidth}px`,
+          height: `${dummyItems.length * (itemHeight + itemGap)}px`,
+        }}
+      >
+        {mode === "static" ? (
+          <StaticVirtualScrollWrapper
+            items={dummyItems}
+            itemWidth={itemWidth}
+            itemHeight={itemHeight}
+            itemGap={itemGap}
+          />
+        ) : (
+          <DynamicVirtualScrollWrapper
+            items={dummyItems}
+            itemWidth={itemWidth}
+            itemHeight={itemHeight}
+            itemGap={itemGap}
+          />
+        )}
+      </div>
+    </>
+  );
+};
