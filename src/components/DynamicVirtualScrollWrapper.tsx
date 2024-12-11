@@ -1,13 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CardContent from "./CardContent";
-import classNames from "classnames";
 import { VirtualScrollWrapperProps } from "./ScrollerSection";
 
 // Single-column only
 // TODO: カラム数にかかわらず使えるように汎用化したい
 export default memo(function SpawningScrollWrapper({
   items,
-  className,
   itemWidth,
   itemHeight,
   itemGap,
