@@ -272,8 +272,7 @@ export default memo(function StaticVirtualScrollWrapper({
   useEffect(() => {
     const onScrollHandler = handleScroll(updateContents);
     document.addEventListener("scroll", onScrollHandler);
-    return () =>
-      document.removeEventListener("scroll", handleScroll(onScrollHandler));
+    return () => document.removeEventListener("scroll", onScrollHandler);
   }, [updateContents, handleScroll]);
 
   return (
