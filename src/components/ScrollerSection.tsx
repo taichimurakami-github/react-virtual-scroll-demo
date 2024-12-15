@@ -13,14 +13,15 @@ type ScrollerSectionProps = {
 export type VirtualScrollWrapperProps = {
   items: CardData[];
   className?: string;
-  itemHeight: number;
+  rowHeight: number;
   itemWidth: number;
-  itemGap: number;
+  rowGap: number;
+  colGap?: number;
 };
 
 const itemWidth = 700;
-const itemHeight = 200;
-const itemGap = 16;
+const rowHeight = 200;
+const rowGap = 16;
 const LS_KEY_MODE = "LS_KEY_MODE";
 
 export const ScrollerSection = ({ itemLength = 50 }: ScrollerSectionProps) => {
@@ -60,22 +61,22 @@ export const ScrollerSection = ({ itemLength = 50 }: ScrollerSectionProps) => {
         className="relative shadow-lg"
         style={{
           width: `${itemWidth}px`,
-          height: `${dummyItems.length * (itemHeight + itemGap)}px`,
+          height: `${dummyItems.length * (rowHeight + rowGap)}px`,
         }}
       >
         {mode === "static" ? (
           <StaticVirtualScrollWrapper
             items={dummyItems}
             itemWidth={itemWidth}
-            itemHeight={itemHeight}
-            itemGap={itemGap}
+            rowHeight={rowHeight}
+            rowGap={rowGap}
           />
         ) : (
           <DynamicVirtualScrollWrapper
             items={dummyItems}
             itemWidth={itemWidth}
-            itemHeight={itemHeight}
-            itemGap={itemGap}
+            rowHeight={rowHeight}
+            rowGap={rowGap}
           />
         )}
       </div>

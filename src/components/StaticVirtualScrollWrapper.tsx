@@ -1,263 +1,134 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CardContent from "./CardContent";
 import { VirtualScrollWrapperProps } from "./ScrollerSection";
+import {
+  calcFixedNumRows,
+  calcItemsListFromRow,
+  calcNumRowsTotal,
+  calcRenderRowRange,
+  calcRowsListFromRange,
+  calcScrollDirection,
+} from "../functions/layoutUtils";
 
-type DoublyLinkedList = {
-  id: number;
-  prev: number | null;
-  next: number | null;
+type RenderRows = {
+  rowId: number | null; // 最後のitemがレンダリングされる際，items.lengthによってrowが余る場合を考慮
+  uid: number;
 }[];
 
-type ElementPool = ({
-  itemId: number;
-  translateY: number;
-} & DoublyLinkedList[number])[];
+type RenderContext = {
+  rowRange: [number, number];
+};
+
+type StaticVirtualScrollWrapperProps = VirtualScrollWrapperProps & {
+  initScrollY?: number;
+  nColumns?: number;
+  rowBuffer?: number;
+};
 
 // Single-column only
 // TODO: カラム数にかかわらず使えるように汎用化したい
 export default memo(function StaticVirtualScrollWrapper({
   items,
-  itemGap,
+  rowGap,
+  colGap = 16,
   itemWidth,
-  itemHeight,
-}: VirtualScrollWrapperProps) {
-  const nRowsMax = useMemo(() => {
-    if (typeof window === "undefined") {
-      return 0;
-    }
+  rowHeight: _rowHeight,
+  nColumns = 1,
+  initScrollY = 0,
+  rowBuffer = 1,
+}: StaticVirtualScrollWrapperProps) {
+  const nRowsTotal = useMemo(
+    () => calcNumRowsTotal(items.length, nColumns),
+    [items.length, nColumns]
+  );
 
-    const BUFFER = 3;
-    const min = Math.trunc(window.innerHeight / (itemHeight + itemGap)) + 1;
-    return min + BUFFER;
-  }, [itemGap, itemHeight]);
+  const rowHeight = useMemo(() => _rowHeight + rowGap, [_rowHeight, rowGap]);
+  const vpHeight = useMemo(() => window.innerHeight, []); // TODO: Consider resize event
+  const nRowsFixed = useMemo(
+    () => calcFixedNumRows(vpHeight, rowHeight, rowBuffer),
+    [vpHeight, rowBuffer]
+  );
 
-  const calcIsInView = useCallback(
-    (
-      scrollY: number,
-      viewportHeight: number,
-      translateY: number,
-      elementHeight: number
-    ) => {
-      const margin = elementHeight * 2;
-      // const viewportTop = scrollY - margin;
-      // const viewportBottom = scrollY + viewportHeight + margin;
+  const createRenderRows = useCallback(
+    (renderRowRange: [number, number]): RenderRows => {
+      const newRenderRows: RenderRows = new Array(nRowsFixed)
+        .fill(0)
+        .map((_, index) => ({
+          uid: index,
+          rowId: null,
+        }));
 
-      return (
-        scrollY - margin < translateY + elementHeight &&
-        translateY < scrollY + viewportHeight + margin
+      // fill new RowList
+      const filledRenderRowList = calcRowsListFromRange(
+        renderRowRange[0],
+        renderRowRange[1]
       );
+      for (let i = 0; i < filledRenderRowList.length; i++) {
+        const rowId = filledRenderRowList[i];
+        const uid = rowId % nRowsFixed;
+        newRenderRows[uid].rowId = rowId;
+      }
+
+      return newRenderRows;
     },
     []
   );
 
-  const [elementPool, setElementPool] = useState<ElementPool>(
-    Array(nRowsMax)
-      .fill(0)
-      .map((_, i) => {
-        return {
-          id: i, // Poolで一意に固定
-          itemId: i, // 組み替え時に変動
-          translateY: i * (itemHeight + itemGap),
-          prev: i === 0 ? null : i - 1,
-          next: i === nRowsMax - 1 ? null : i + 1,
-        };
-      })
-  );
-  const refPtr = useRef({
-    hasFirstItem: 0, // hasFirstItem = elementPoolの最初
-    hasLastItem: nRowsMax - 1, // hasLastItem = elementPoolの最後
+  const refRenderCtx = useRef<RenderContext>({
+    rowRange: calcRenderRowRange(
+      window.scrollY,
+      window.innerHeight,
+      rowHeight,
+      nRowsTotal,
+      0,
+      1
+    ),
   });
 
-  /**
-   * translateYが最も大きい要素から順に，inView状態か否かを見る
-   * CAUTION: This function has a side effect. It mutates variable 'tempElementPool'.
-   */
-  const createNewElementPoolOnScrollUp = useCallback(
-    (
-      tempElementPool: ElementPool,
-      scrollY: number,
-      vpHeight: number,
-      elementHeight: number
-    ): ElementPool => {
-      if (
-        calcIsInView(
-          scrollY,
-          vpHeight,
-          elementPool[refPtr.current.hasLastItem].translateY,
-          elementHeight
-        )
-      ) {
-        return tempElementPool;
-      }
-
-      const pool = tempElementPool;
-      const firstEl = pool[refPtr.current.hasFirstItem];
-      const lastEl = pool[refPtr.current.hasLastItem];
-
-      // Assert
-      if (firstEl.next == null) {
-        throw new Error("Next element of first elem must not be null");
-      }
-      if (lastEl.prev == null) {
-        throw new Error("Last element of last elem must not be null");
-      }
-
-      if (firstEl.itemId === 0) {
-        // すでに最初のアイテムを表示済みの場合はなにもしない
-        return tempElementPool;
-      }
-
-      /**
-       * Exchange element
-       */
-
-      // 最後から2番目の要素が最後の要素になる
-      refPtr.current.hasLastItem = pool[lastEl.prev].id;
-      pool[lastEl.prev].next = null;
-
-      // 先頭の要素は２番目になる
-      firstEl.prev = lastEl.id;
-
-      // 最後の要素は先頭に来る
-      refPtr.current.hasFirstItem = lastEl.id;
-      lastEl.prev = null;
-      lastEl.next = firstEl.next;
-      lastEl.translateY = firstEl.translateY - elementHeight; // style更新 (上端の見切れたアイテムを下端まで持ってくる)
-      lastEl.itemId = firstEl.itemId - 1; // itemId更新
-
-      return tempElementPool;
-
-      // in viewな要素が見つかるまで繰り返す (スクロールの粒度的に，１つ以上の要素を飛ばす可能性がある場合のみ再帰が必要)
-      // return createNewElementPoolOnScrollUp(
-      //   tempElementPool,
-      //   scrollY,
-      //   vpHeight,
-      //   elementHeight
-      // );
-    },
-    [calcIsInView, elementPool]
+  const [renderRows, setRenderRows] = useState<RenderRows>(
+    createRenderRows(refRenderCtx.current.rowRange)
   );
 
-  // translateYが最も小さい要素から順に，inView状態か否かを見る
-  // CAUTION: This function has a side effect. It mutates variable 'tempElementPool'.
-  const createNewElementPoolOnScrollDown = useCallback(
-    (
-      tempElementPool: ElementPool,
-      scrollY: number,
-      vpHeight: number,
-      elementHeight: number
-    ): ElementPool => {
-      if (
-        calcIsInView(
-          scrollY,
-          vpHeight,
-          elementPool[refPtr.current.hasFirstItem].translateY,
-          elementHeight
-        )
-      ) {
-        return tempElementPool;
-      }
+  const updateRenderContext = useCallback((rowRange: [number, number]) => {
+    refRenderCtx.current.rowRange = rowRange;
+  }, []);
 
-      const pool = tempElementPool;
-      const firstEl = pool[refPtr.current.hasFirstItem];
-      const lastEl = pool[refPtr.current.hasLastItem];
-
-      // Assert
-      if (firstEl.next == null) {
-        throw new Error("Next element of first elem must not be null");
-      }
-      if (lastEl.prev == null) {
-        throw new Error("Last element of last elem must not be null");
-      }
-
-      if (lastEl.itemId === items.length - 1) {
-        // すでに最後のアイテムを表示済みの場合はなにもしない
-        return tempElementPool;
-      }
-
-      /**
-       * Exchange element
-       */
-
-      // 2番目の要素が最初の要素になる
-      refPtr.current.hasFirstItem = pool[firstEl.next].id;
-      pool[firstEl.next].prev = null;
-
-      // 最後尾の要素は最後から２番目になる
-      lastEl.next = firstEl.id;
-
-      // 最初の要素は最後尾に来る
-      refPtr.current.hasLastItem = firstEl.id;
-      firstEl.prev = lastEl.id;
-      firstEl.next = null;
-      firstEl.translateY = lastEl.translateY + elementHeight; // style更新 (上端の見切れたアイテムを下端まで持ってくる)
-      firstEl.itemId = lastEl.itemId + 1; // itemId更新
-
-      return tempElementPool;
-
-      // in viewな要素が見つかるまで繰り返す(スクロールの粒度的に，１つ以上の要素を飛ばす可能性がある場合のみ再帰が必要)
-      // return createNewElementPoolOnScrollDown(
-      //   tempElementPool,
-      //   scrollY,
-      //   vpHeight,
-      //   elementHeight
-      // );
-    },
-    [calcIsInView, elementPool, items.length]
-  );
-
-  const refPrevScrollY = useRef(0);
-  const calcScrollDirection = useCallback(
-    (currentScrollY: number): "up" | "down" => {
-      if (refPrevScrollY.current < currentScrollY) {
-        refPrevScrollY.current = currentScrollY;
-        return "down";
-      } else {
-        refPrevScrollY.current = currentScrollY;
-        return "up";
-      }
-    },
-    []
-  );
-
-  const updateContents = useCallback(() => {
-    const elementHeight = itemHeight + itemGap; // card + gap bottom をひとまとめにして考える;
+  const updateRenderRows = useCallback(() => {
     const scrollY = window.scrollY;
-    const vpHeight = window.innerHeight;
-    const scrollDirection = calcScrollDirection(scrollY);
 
-    // update Element Pool
-    const newElementPool = [...elementPool];
+    const rowRange = calcRenderRowRange(
+      scrollY,
+      scrollY + window.innerHeight,
+      rowHeight,
+      nRowsTotal - 1
+    );
 
-    if (scrollDirection === "down") {
-      createNewElementPoolOnScrollDown(
-        newElementPool,
-        scrollY,
-        vpHeight,
-        elementHeight
-      );
-    } else {
-      createNewElementPoolOnScrollUp(
-        newElementPool,
-        scrollY,
-        vpHeight,
-        elementHeight
-      );
+    const scrollDir = calcScrollDirection(
+      refRenderCtx.current.rowRange,
+      rowRange
+    );
+
+    if (scrollDir === 0) {
+      // no need to update.
+      return;
     }
 
-    setElementPool(newElementPool);
-  }, [
-    calcScrollDirection,
-    createNewElementPoolOnScrollDown,
-    createNewElementPoolOnScrollUp,
-    elementPool,
-    itemGap,
-    itemHeight,
-  ]);
+    updateRenderContext(rowRange);
+    setRenderRows(createRenderRows(rowRange));
+  }, [calcScrollDirection, updateRenderContext, renderRows, rowHeight]);
 
   const refTicking = useRef(false);
   const handleScroll = useCallback(
     (handler: (e: Event) => void) => (e: Event) => {
+      // とりあえず更新頻度は1フレに1回に制限
       if (!refTicking.current) {
         refTicking.current = true;
         requestAnimationFrame(() => {
@@ -270,30 +141,62 @@ export default memo(function StaticVirtualScrollWrapper({
   );
 
   useEffect(() => {
-    const onScrollHandler = handleScroll(updateContents);
+    const onScrollHandler = handleScroll(updateRenderRows);
     document.addEventListener("scroll", onScrollHandler);
     return () => document.removeEventListener("scroll", onScrollHandler);
-  }, [updateContents, handleScroll]);
+  }, [updateRenderRows, handleScroll]);
 
-  return (
-    <>
-      {elementPool.map((v) => {
-        const data = items[v.itemId];
-        const key = `static-dummy_card_content_${v.id}`;
-        return (
-          <CardContent
-            id={key}
-            key={key}
-            data={data}
-            width={`${itemWidth}px`}
-            height={`${itemHeight}px`}
-            className="absolute top-0 left-1/2 will-change-transform"
-            styles={{
-              transform: `translate3d(-50%, ${v.translateY}px, 0)`,
-            }}
-          />
-        );
-      })}
-    </>
+  const getCardItemElementKey = useCallback(
+    (id: number) => `static-dummy_card_content_${id}`,
+    []
   );
+
+  const getRenderElements = useCallback(
+    (rows: RenderRows): ReactNode[] => {
+      const getCardElementKey = (uid: number, iColumn: number) =>
+        `static-dummy_card_content_${iColumn + uid * nColumns}`;
+
+      return rows.flatMap(({ rowId, uid }) => {
+        const rowElemKey = `static-dummy_card_content-${uid}`;
+        const renderItemList =
+          rowId != null
+            ? calcItemsListFromRow(rowId, nColumns)
+            : new Array(nColumns).fill(null);
+        const translateY = rowId != null ? rowHeight * rowId : 0;
+
+        return (
+          <div
+            className="absolute flex items-center top-0 left-1/2 will-change-transform"
+            style={{
+              gap: `${colGap}px`,
+              transform: `translate3d(-50%, ${translateY}px, 0)`,
+            }}
+            key={rowElemKey}
+            id={rowElemKey}
+          >
+            {renderItemList.map((itemId) => {
+              const cardElemKey = `static-dummy_card_content_${
+                itemId - renderItemList[0]
+              }`;
+              return (
+                <CardContent
+                  id={cardElemKey}
+                  key={cardElemKey}
+                  data={items[itemId]}
+                  width={`${itemWidth}px`}
+                  height={`${rowHeight - rowGap}px`}
+                  styles={{
+                    visibility: rowId != null ? "visible" : "hidden",
+                  }}
+                />
+              );
+            })}
+          </div>
+        );
+      });
+    },
+    [rowHeight, nColumns, rowGap, getCardItemElementKey]
+  );
+
+  return getRenderElements(renderRows);
 });

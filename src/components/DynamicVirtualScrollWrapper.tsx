@@ -7,8 +7,8 @@ import { VirtualScrollWrapperProps } from "./ScrollerSection";
 export default memo(function SpawningScrollWrapper({
   items,
   itemWidth,
-  itemHeight,
-  itemGap,
+  rowHeight,
+  rowGap,
 }: VirtualScrollWrapperProps) {
   const calcIsInView = useCallback(
     (
@@ -18,14 +18,14 @@ export default memo(function SpawningScrollWrapper({
       elementHeight: number
     ) => {
       const margin = elementHeight * 2;
-      const translateY = targetItemId * itemHeight;
+      const translateY = targetItemId * rowHeight;
 
       return (
         scrollY - margin < translateY + elementHeight &&
         translateY < scrollY + viewportHeight + margin
       );
     },
-    [itemHeight]
+    [rowHeight]
   );
 
   const nRowsMax = useMemo(() => {
@@ -34,9 +34,9 @@ export default memo(function SpawningScrollWrapper({
     }
 
     const BUFFER = 3;
-    const min = Math.trunc(window.innerHeight / (itemHeight + itemGap)) + 1;
+    const min = Math.trunc(window.innerHeight / (rowHeight + rowGap)) + 1;
     return min + BUFFER;
-  }, [itemGap, itemHeight]);
+  }, [rowGap, rowHeight]);
 
   const [renderElements, setRenderElements] = useState<number[]>(
     Array(Math.min(nRowsMax, items.length))
@@ -127,7 +127,7 @@ export default memo(function SpawningScrollWrapper({
   );
 
   const updateContents = useCallback(() => {
-    const elementHeight = itemHeight + itemGap; // card + gap bottom をひとまとめにして考える;
+    const elementHeight = rowHeight + rowGap; // card + gap bottom をひとまとめにして考える;
     const scrollY = window.scrollY;
     const vpHeight = window.innerHeight;
     const scrollDirection = calcScrollDirection(scrollY);
@@ -156,8 +156,8 @@ export default memo(function SpawningScrollWrapper({
     calcScrollDirection,
     createNewElementPoolOnScrollDown,
     createNewElementPoolOnScrollUp,
-    itemGap,
-    itemHeight,
+    rowGap,
+    rowHeight,
   ]);
 
   const refTicking = useRef(false);
@@ -184,14 +184,14 @@ export default memo(function SpawningScrollWrapper({
     <>
       {renderElements.map((itemId) => {
         const data = items[itemId];
-        const translateY = Number(data.id) * (itemHeight + itemGap);
+        const translateY = Number(data.id) * (rowHeight + rowGap);
         return (
           <CardContent
             id={data.key}
             key={data.key}
             data={data}
             width={`${itemWidth}px`}
-            height={`${itemHeight}px`}
+            height={`${rowHeight}px`}
             className="absolute top-0 left-1/2 will-change-transform"
             styles={{
               transform: `translate3d(-50%, ${translateY}px, 0)`,

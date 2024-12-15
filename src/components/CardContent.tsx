@@ -3,7 +3,6 @@ import { CSSProperties } from "react";
 
 export type CardData = {
   id: number | string;
-  key: string;
   imgUrl: null | string;
   title: string;
   description: string;
@@ -14,7 +13,7 @@ type CardContentProps = {
   id: string;
   width: string;
   height: string;
-  data: CardData;
+  data: CardData | null;
   className?: string;
   styles?: CSSProperties;
 };
@@ -33,10 +32,9 @@ export default function CardContent({
     <div
       id={id}
       className={classNames(
-        "flex p-2 gap-4 shadow-md rounded-lg bg-slate-100",
+        "flex p-2 gap-4 shadow-md rounded-lg bg-slate-100 text-black",
         className
       )}
-      key={data.key}
       style={{
         width,
         height,
@@ -45,13 +43,13 @@ export default function CardContent({
     >
       <img
         className="w-32"
-        src={data.imgUrl ?? fallbackImgUrl}
+        src={data?.imgUrl ?? fallbackImgUrl}
         alt="dummy card content thumbnail."
       />
       <div className="grid gap-2">
-        <p>Content #{data.id}</p>
-        <h1 className="text-xl font-bold">{data.title}</h1>
-        <p>{data.description}</p>
+        <p>Content #{data?.id}</p>
+        <h1 className="text-xl font-bold">{data?.title}</h1>
+        <p>{data?.description}</p>
       </div>
     </div>
   );
