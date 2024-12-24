@@ -3,20 +3,23 @@ import { useCallback, useMemo, useState } from "react";
 import StaticVirtualScrollWrapper from "./StaticVirtualScrollWrapper";
 import DynamicVirtualScrollWrapper from "./DynamicVirtualScrollWrapper";
 import { dummyDataList, getDummyData } from "../dummyData";
-import { CardData } from "./CardContent";
+import { CardData } from "./presentational/CardContent";
 
 type Mode = "static" | "dynamic";
 type ScrollerSectionProps = {
   itemLength?: number;
 };
 
-export type VirtualScrollWrapperProps = {
+export type VirtualScrollWrapperCommonProps = {
   items: CardData[];
   className?: string;
   rowHeight: number;
   itemWidth: number;
   rowGap: number;
   colGap?: number;
+  initScrollY?: number;
+  nColumns?: number;
+  rowBuffer?: number;
 };
 
 const itemWidth = 700;
@@ -24,7 +27,9 @@ const rowHeight = 200;
 const rowGap = 16;
 const LS_KEY_MODE = "LS_KEY_MODE";
 
-export const ScrollerSection = ({ itemLength = 50 }: ScrollerSectionProps) => {
+export const InfiniteScrollerSection = ({
+  itemLength = 50,
+}: ScrollerSectionProps) => {
   const [mode, setMode] = useState<Mode>(
     (localStorage.getItem(LS_KEY_MODE) as Mode) ?? "static"
   );
@@ -58,7 +63,7 @@ export const ScrollerSection = ({ itemLength = 50 }: ScrollerSectionProps) => {
 
       <div
         id="virtual_scroll_wrapper"
-        className="relative shadow-lg"
+        className="relative"
         style={{
           width: `${itemWidth}px`,
           height: `${dummyItems.length * (rowHeight + rowGap)}px`,

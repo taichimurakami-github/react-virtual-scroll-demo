@@ -1,3 +1,13 @@
+/**
+ * @file Utils for constructing layouts
+ * @remarks
+ * - V8ならnew Array() を使わないほうが速いかも？将来的には環境によって使い分けることも検討
+ * - Normal Arrayではなく，Typed Arrayの方が早い可能性がある（特に初期化周り）
+ * - カラム数，行数共に大した数値にならないため許容しているが，コスト面では初期化でArray.fillを使わないほうが良いかもしれない
+ */
+
+import { createRangeArray } from "./basics";
+
 export const calcNumRowsTotal = (nItems: number, nColumns: number) =>
   nItems % nColumns === 0
     ? Math.trunc(nItems / nColumns)
@@ -14,7 +24,7 @@ export const calcFixedNumRows = (
   return nRowsMinInViewed + nRowsBuffer;
 };
 
-export const calcRenderRowRange = (
+export const calcRowRangeInView = (
   vpTop: number,
   vpBottom: number,
   rowHeight: number,
@@ -27,11 +37,8 @@ export const calcRenderRowRange = (
   return [nRowIdMin, nRowIdMax];
 };
 
-export const calcRowsListFromRange = (nRowMin: number, nRowMax: number) =>
-  new Array(nRowMax - nRowMin + 1).fill(0).map((_, i) => i + nRowMin);
-
 export const calcItemsListFromRow = (rowId: number, nColumns: number) =>
-  new Array(nColumns).fill(0).map((_, i) => i + rowId * nColumns);
+  createRangeArray(nColumns, rowId * nColumns); // new Array(nColumns).fill(0).map((_, i) => i + rowId * nColumns);
 
 export const calcItemsListFromRowRange = (
   nRowMin: number,
@@ -55,3 +62,6 @@ export const calcScrollDirection = (
 
 export const calcFirstItemInRow = (rowId: number, nColumns: number) =>
   rowId * nColumns;
+
+export const calcItemId = (rowId: number, nColumns: number, iColumn: number) =>
+  calcFirstItemInRow(rowId, nColumns) + iColumn;

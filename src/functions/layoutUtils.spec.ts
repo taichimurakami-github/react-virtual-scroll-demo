@@ -1,11 +1,10 @@
 import {
   calcFixedNumRows,
-  calcItemsListFromRow,
   calcItemsListFromRowRange,
   calcNumRowsTotal,
-  calcRenderRowRange,
-  calcRowsListFromRange,
+  calcRowRangeInView,
   calcScrollDirection,
+  calcItemsListFromRow,
 } from "./layoutUtils";
 
 test("calcNumRowsTotal case 1", () => {
@@ -38,44 +37,49 @@ test("calcFixedNumRows case 4", () => {
   expect(result).toBe(7);
 });
 
-test("calcRenderRowRange case 1: normal", () => {
-  const result = calcRenderRowRange(70, 100, 30, 100);
-  expect(result).toStrictEqual([1, 4]);
+test("calcRowRangeInView case 1: normal", () => {
+  const result = calcRowRangeInView(70, 100, 30, 100);
+  expect(result).toEqual([1, 4]);
 });
 
-test("calcRenderRowRange case 2: min and max", () => {
-  const result = calcRenderRowRange(0, 100, 30, 3);
-  expect(result).toStrictEqual([0, 3]);
+test("calcRowRangeInView case 2: min and max", () => {
+  const result = calcRowRangeInView(0, 100, 30, 3);
+  expect(result).toEqual([0, 3]);
 });
 
-test("calcRenderRowRange case 3: on the edge", () => {
-  const result = calcRenderRowRange(60, 120, 30, 100);
-  expect(result).toStrictEqual([1, 5]);
+test("calcRowRangeInView case 3: on the edge", () => {
+  const result = calcRowRangeInView(60, 120, 30, 100);
+  expect(result).toEqual([1, 5]);
 });
 
 test("calcRowsListFromRange case 1", () => {
-  const result = calcRowsListFromRange(0, 2);
-  expect(result).toStrictEqual([0, 1, 2]);
+  const result = calcItemsListFromRow(0, 3);
+  expect(result).toEqual([0, 1, 2]);
+});
+
+test("calcRowsListFromRange case 2", () => {
+  const result = calcItemsListFromRow(2, 4);
+  expect(result).toEqual([8, 9, 10, 11]);
 });
 
 test("calcItemsListFromRow case 1", () => {
   const result = calcItemsListFromRow(0, 3);
-  expect(result).toStrictEqual([0, 1, 2]);
+  expect(result).toEqual([0, 1, 2]);
 });
 
 test("calcItemsListFromRow case 2", () => {
   const result = calcItemsListFromRow(2, 4);
-  expect(result).toStrictEqual([8, 9, 10, 11]);
+  expect(result).toEqual([8, 9, 10, 11]);
 });
 
 test("calcItemsListFromRowRange case 1", () => {
   const result = calcItemsListFromRowRange(0, 1, 3);
-  expect(result).toStrictEqual([0, 1, 2, 3, 4, 5]);
+  expect(result).toEqual([0, 1, 2, 3, 4, 5]);
 });
 
 test("calcItemsListFromRowRange case 2", () => {
   const result = calcItemsListFromRowRange(2, 4, 3);
-  expect(result).toStrictEqual([6, 7, 8, 9, 10, 11, 12, 13, 14]);
+  expect(result).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14]);
 });
 
 test("calcScrollDirection case 1: up", () => {

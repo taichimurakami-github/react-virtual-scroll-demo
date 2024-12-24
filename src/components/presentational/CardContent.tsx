@@ -45,6 +45,7 @@ export default function CardContent({
         className="w-32"
         src={data?.imgUrl ?? fallbackImgUrl}
         alt="dummy card content thumbnail."
+        key=""
       />
       <div className="grid gap-2">
         <p>Content #{data?.id}</p>

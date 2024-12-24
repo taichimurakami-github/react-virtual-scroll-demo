@@ -1,4 +1,4 @@
-import { CardData } from "./components/CardContent";
+import { CardData } from "./components/presentational/CardContent";
 
 const getRandom = (seed = 0, x = 110203489, y = 903884291, z = 793120342) => {
   // xOrShift like
