@@ -18,8 +18,15 @@ test("calcNumRowsTotal case 2", () => {
 });
 
 test("calcFixedNumRows case 1", () => {
-  const result = calcFixedNumRows(100, 100, 1);
-  expect(result).toBe(4);
+  {
+    const result = calcFixedNumRows(100, 100, 1);
+    expect(result).toBe(5);
+  }
+
+  {
+    const result = calcFixedNumRows(101, 100, 1);
+    expect(result).toBe(5);
+  }
 });
 
 test("calcFixedNumRows case 2", () => {
@@ -29,7 +36,7 @@ test("calcFixedNumRows case 2", () => {
 
 test("calcFixedNumRows case 3", () => {
   const result = calcFixedNumRows(100, 50, 1);
-  expect(result).toBe(5);
+  expect(result).toBe(6);
 });
 
 test("calcFixedNumRows case 4", () => {

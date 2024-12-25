@@ -25,6 +25,7 @@ export type VirtualScrollWrapperCommonProps = {
 const itemWidth = 700;
 const rowHeight = 200;
 const rowGap = 16;
+const nColumns = 2;
 const LS_KEY_MODE = "LS_KEY_MODE";
 
 export const InfiniteScrollerSection = ({
@@ -75,6 +76,7 @@ export const InfiniteScrollerSection = ({
             itemWidth={itemWidth}
             rowHeight={rowHeight}
             rowGap={rowGap}
+            nColumns={nColumns}
           />
         ) : (
           <DynamicVirtualScrollWrapper
@@ -82,6 +84,7 @@ export const InfiniteScrollerSection = ({
             itemWidth={itemWidth}
             rowHeight={rowHeight}
             rowGap={rowGap}
+            nColumns={nColumns}
           />
         )}
       </div>

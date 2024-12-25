@@ -18,8 +18,8 @@ export const calcFixedNumRows = (
   rowHeight: number,
   nBuffer: number
 ) => {
-  const nRowsMinInViewed = Math.ceil(vpHeight / rowHeight) + 1;
-  const nRowsBuffer = nBuffer * 2;
+  const nRowsMinInViewed = Math.trunc(vpHeight / rowHeight) + 2; // 上下端の一部が映り込むパターンが最大になる分の補正
+  const nRowsBuffer = nBuffer * 2; // 上下にバッファを配置
 
   return nRowsMinInViewed + nRowsBuffer;
 };

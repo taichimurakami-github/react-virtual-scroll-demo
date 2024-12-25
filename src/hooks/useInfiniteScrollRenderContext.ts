@@ -92,8 +92,8 @@ export default function useInfiniteScrollRenderContext({
   const createRenderContext = useCallback(
     (rowsCtx: RowContext[]): RenderContext => {
       // rowsCtxをベースに，renderCtxを作成
-      const renderCtx = new Array<RenderContext[number]>(nRowsInViewMax);
-      const len = renderCtx.length;
+      const renderCtx = new Array<RenderContext[number]>(rowsCtx.length);
+      const len = rowsCtx.length;
 
       for (let i = 0; i < len; i++) {
         const rowId = rowsCtx[i].rowId;
@@ -108,12 +108,12 @@ export default function useInfiniteScrollRenderContext({
               );
         const translateY = rowId != null ? rowHeight * rowId : 0;
 
-        renderCtx.push({
+        renderCtx[i] = {
           rowId,
           uid,
           itemIdList,
           translateY,
-        });
+        };
       }
 
       return renderCtx;
