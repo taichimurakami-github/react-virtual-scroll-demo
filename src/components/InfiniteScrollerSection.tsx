@@ -25,11 +25,12 @@ export type VirtualScrollWrapperCommonProps = {
 const itemWidth = 700;
 const rowHeight = 200;
 const rowGap = 16;
+const colGap = 16;
 const nColumns = 2;
 const LS_KEY_MODE = "LS_KEY_MODE";
 
 export const InfiniteScrollerSection = ({
-  itemLength = 50,
+  itemLength = 500,
 }: ScrollerSectionProps) => {
   const [mode, setMode] = useState<Mode>(
     (localStorage.getItem(LS_KEY_MODE) as Mode) ?? "static"
@@ -46,10 +47,47 @@ export const InfiniteScrollerSection = ({
       });
   }, [itemLength]);
 
+  const wrapperWidthPx = useMemo(
+    () => itemWidth * nColumns + colGap * (nColumns - 1),
+    [dummyItems.length, nColumns, rowHeight, rowGap]
+  );
+  const wrapperHeightPx = useMemo(
+    () => Math.ceil(dummyItems.length / nColumns) * (rowHeight + rowGap),
+    [dummyItems.length, nColumns, rowHeight, rowGap]
+  );
+
   return (
     <>
+      <div
+        id="virtual_scroll_wrapper"
+        className="relative"
+        style={{
+          width: `${wrapperWidthPx}px`,
+          height: `${wrapperHeightPx}px`,
+        }}
+      >
+        {mode === "static" ? (
+          <StaticVirtualScrollWrapper
+            items={dummyItems}
+            itemWidth={itemWidth}
+            rowHeight={rowHeight}
+            rowGap={rowGap}
+            colGap={colGap}
+            nColumns={nColumns}
+          />
+        ) : (
+          <DynamicVirtualScrollWrapper
+            items={dummyItems}
+            itemWidth={itemWidth}
+            rowHeight={rowHeight}
+            rowGap={rowGap}
+            colGap={colGap}
+            nColumns={nColumns}
+          />
+        )}
+      </div>
       <button
-        className="fixed top-2 left-2 p-2 flex justfy-center items-center bg-black rounded-md text-white font-bold"
+        className="fixed top-2 left-2 p-2 flex justfy-center items-center bg-black rounded-md text-white font-bold max-w-[90%] z-10"
         onClick={useCallback(() => {
           setMode((mode) => {
             const nextMode = mode === "static" ? "dynamic" : "static";
@@ -61,33 +99,6 @@ export const InfiniteScrollerSection = ({
         Active mode: {mode} <br />
         (Click to change)
       </button>
-
-      <div
-        id="virtual_scroll_wrapper"
-        className="relative"
-        style={{
-          width: `${itemWidth}px`,
-          height: `${dummyItems.length * (rowHeight + rowGap)}px`,
-        }}
-      >
-        {mode === "static" ? (
-          <StaticVirtualScrollWrapper
-            items={dummyItems}
-            itemWidth={itemWidth}
-            rowHeight={rowHeight}
-            rowGap={rowGap}
-            nColumns={nColumns}
-          />
-        ) : (
-          <DynamicVirtualScrollWrapper
-            items={dummyItems}
-            itemWidth={itemWidth}
-            rowHeight={rowHeight}
-            rowGap={rowGap}
-            nColumns={nColumns}
-          />
-        )}
-      </div>
     </>
   );
 };
